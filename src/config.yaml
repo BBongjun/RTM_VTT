@@ -5,6 +5,10 @@ log_dir: ./logs
 workers: 8
 
 # dataset
+GDN_step45_big_ref:
+  train_dir: ../../data/GDN_step45_big_ref/train
+  test_dir: ../../data/GDN_step45_big_ref/test
+
 SMD:
   train_dir: ../data/ServerMachineDataset/train
   test_dir: ../data/ServerMachineDataset/test
@@ -33,6 +37,7 @@ loader_params:
   shuffle: False
   num_workers: 8
   pin_memory: True
+  use_val : True
 
 # model parameters
 VTTSAT:

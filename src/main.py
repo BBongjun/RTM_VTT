@@ -9,7 +9,8 @@ import pdb
 import os
 
 from utils.utils import set_seed, log_setting, version_build
-from data_provider.dataloader import get_dataloader
+# from data_provider.dataloader import get_dataloader
+from data_provider.waferdataset import get_dataloader
 from model import build_model
 
 
@@ -28,23 +29,14 @@ def main(sweep_config=None):
     # arg parser
     model_name = args.model
     dataset = args.dataname
-    subdataname = args.subdataname
 
     # process init
     now = datetime.now()
-    if subdataname is not None:
-        group_name = f'{dataset}/{subdataname}-{model_name}'
-        process_name = f'{group_name}-{now.strftime("%Y%m%d_%H%m%S")}'
-
-    else:
-        group_name = f'{dataset}-{model_name}'
-        process_name = f'{group_name}-{now.strftime("%Y%m%d_%H%m%S")}'
+    group_name = f'{dataset}-{model_name}'
+    process_name = f'{group_name}-{now.strftime("%Y%m%d_%H%m%S")}'
 
     # savedir
-    if subdataname is not None:
-        logdir = os.path.join(config['log_dir'], f'{dataset}/{model_name}/{subdataname}')
-    else:
-        logdir = os.path.join(config['log_dir'], f'{dataset}/{model_name}')
+    logdir = os.path.join(config['log_dir'], f'{dataset}/{model_name}')
     savedir = version_build(logdir=logdir, is_train=args.train, resume=args.resume)
     logger = log_setting(savedir, f'{now.strftime("%Y%m%d_%H%m%S")}')
 
@@ -79,15 +71,16 @@ def main(sweep_config=None):
 
     data_info = OmegaConf.create(config[args.dataname])
 
-    # load data
-    trainloader, validloader, testloader, interloader = get_dataloader(data_name=args.dataname,
-                                                                       sub_data_name=args.subdataname,
-                                                                       data_info=data_info,
-                                                                       loader_params=config['loader_params'],
-                                                                       scale=scale,
-                                                                       window_size=model_params.window_size,
-                                                                       slide_size=int(model_params.window_size/2),
-                                                                       model_type=model_type)
+    # # load data
+    # trainloader, validloader, testloader, interloader = get_dataloader(data_name=args.dataname,
+    #                                                                    data_info=data_info,
+    #                                                                    loader_params=config['loader_params'],
+    #                                                                    scale=scale,
+    #                                                                    window_size=model_params.window_size,
+    #                                                                    slide_size=int(model_params.window_size/2),
+    #                                                                    model_type=model_type)
+    trainloader, validloader, testloader = get_dataloader(data_info = data_info,
+                                                          loader_params = config['loader_params'])        
 
 
     # data shape
@@ -135,16 +128,17 @@ if __name__ == '__main__':
     parser.add_argument('--train', action='store_true', help='training model')
     parser.add_argument('--test', action='store_true', help='anomaly scoring')
     parser.add_argument('--resume', type=int, default=None, help='version number to re-train or test model')
-    parser.add_argument('--model', type=str, required=True,
+    parser.add_argument('--model', type=str, required=True, 
                         choices=['VTTSAT', 'VTTPAT'],
                         help="model(VTTSAT, VTTPAT)")
 
     # data
-    parser.add_argument('--dataname', type=str, required=True, help='data name(SWaT, SMD, SMAP, MSL)',
-                        choices=['SWaT', 'SMD', 'SMAP', 'MSL'])
-    parser.add_argument('--subdataname', type=str, default=None, help='dataset name')
-    parser.add_argument('--window_size', type=int, default=100, help='window size for data loader')
-    parser.add_argument('--slide_size', type=int, default=50, help='overlap ratio for data loader')
+    # parser.add_argument('--dataname', type=str, required=True, help='data name(SWaT, SMD, SMAP, MSL)',
+    #                     choices=['SWaT', 'SMD', 'SMAP', 'MSL'])
+    parser.add_argument('--dataname', type=str, default='GDN_step45_big_ref', help='waferdataset')
+    # parser.add_argument('--subdataname', type=str, default=None, help='dataset name')
+    parser.add_argument('--window_size', type=int, default=30, help='window size for data loader')
+    parser.add_argument('--slide_size', type=int, default=1, help='overlap ratio for data loader')
 
     # train options
     parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
