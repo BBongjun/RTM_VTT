@@ -9,27 +9,32 @@ GDN_step45_big_ref:
   train_dir: ../../data/GDN_step45_big_ref/train
   test_dir: ../../data/GDN_step45_big_ref/test
 
+GDN_step45_big_ref_val:
+  train_dir: ../../data/GDN_step45_big_ref_val/train
+  val_dir: ../../data/GDN_step45_big_ref_val/val
+  test_dir: ../../data/GDN_step45_big_ref_val/test
+
 SMD:
   train_dir: ../data/ServerMachineDataset/train
   test_dir: ../data/ServerMachineDataset/test
   test_label_dir: ../data/ServerMachineDataset/test_label
   interpretation_label_dir: ../data/ServerMachineDataset/interpretation_label
 
-SMAP:
-  train_dir: ../data/SMAP_MSL/train
-  test_dir: ../data/SMAP_MSL/test
-  test_label_path: ../data/SMAP_MSL/labeled_anomalies.csv
+# SMAP:
+#   train_dir: ../data/SMAP_MSL/train
+#   test_dir: ../data/SMAP_MSL/test
+#   test_label_path: ../data/SMAP_MSL/labeled_anomalies.csv
 
-MSL:
-  train_dir: ../data/SMAP_MSL/train
-  test_dir: ../data/SMAP_MSL/test
-  test_label_path: ../data/SMAP_MSL/labeled_anomalies.csv
+# MSL:
+#   train_dir: ../data/SMAP_MSL/train
+#   test_dir: ../data/SMAP_MSL/test
+#   test_label_path: ../data/SMAP_MSL/labeled_anomalies.csv
 
-SWaT:
-  train_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Normal_v1.pkl
-  test_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Attack_v0.pkl
+# SWaT:
+#   train_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Normal_v1.pkl
+#   test_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Attack_v0.pkl
 
-scale: standard
+# scale: standard
 
 # dataloader parameters
 loader_params:
@@ -63,4 +68,5 @@ VTTPAT:
   optim: adamw
   lr: 0.0001
   lradj: type1
-  window_size: 100
+  window_size: 30
+  feature_num: 12

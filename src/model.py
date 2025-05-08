@@ -161,7 +161,7 @@ class build_model():
         self.model.train()
         return total_loss, valid_score
 
-    def train(self, train_loader, valid_loader, test_loader, alpha=.5, beta=.5):
+    def train(self, train_loader, valid_loader, test_loader, use_val=False,alpha=.5, beta=.5):
         """
         training
 
@@ -259,8 +259,10 @@ class build_model():
 
             train_score = np.concatenate(train_score).flatten()
             train_loss_avg = np.average(train_loss)
-            valid_loss, valid_score = self.valid(valid_loader, criterion, epoch)
-            valid_score = np.concatenate(valid_score).flatten()
+            
+            if use_val:
+                valid_loss, valid_score = self.valid(valid_loader, criterion, epoch)
+                valid_score = np.concatenate(valid_score).flatten()
             
             # 테스트셋(label이 있는) inference
             # dist, attack = self.inference(test_loader, epoch)
@@ -273,26 +275,40 @@ class build_model():
             # np.save(os.path.join(folder_path, f'dist.npy'), dist)
             # np.save(os.path.join(folder_path, f'attack.npy'), attack)
 
-            print('=' * 100)
-            print(f"[Epoch {epoch + 1}] "
-                f"Time: {time.time() - epoch_time:.2f}s | "
-                f"Steps: {train_steps} | "
-                f"Train Loss: {train_loss_avg:.6f} | "
-                f"Val Loss: {valid_loss:.6f}")
+                print('=' * 100)
+                print(f"[Epoch {epoch + 1}] "
+                    f"Time: {time.time() - epoch_time:.2f}s | "
+                    f"Steps: {train_steps} | "
+                    f"Train Loss: {train_loss_avg:.8f} | "
+                    f"Val Loss: {valid_loss:.8f}")
 
+                history['validation_loss'].append(valid_loss)
+
+                ckp.check(epoch=epoch + 1, model=self.model, score=valid_loss, lr=model_optim.param_groups[0]['lr'])
+
+                if early_stopping.validate(valid_loss):
+                    print("Early stopping")
+                    break
+            else:
+                print('=' * 100)
+                print(f"[Epoch {epoch + 1}] "
+                  f"Time: {time.time() - epoch_time:.2f}s | "
+                  f"Steps: {train_steps} | "
+                  f"Train Loss: {train_loss_avg:.8f}")
+                
+                # train loss 기준 체크
+                ckp.check(epoch=epoch + 1, model=self.model, score=train_loss_avg, lr=model_optim.param_groups[0]['lr'])
+                
+                if early_stopping.validate(train_loss_avg):
+                    print("Early stopping")
+                    break
+                
             history['train_loss'].append(train_loss_avg)
-            history['validation_loss'].append(valid_loss)
-
-            ckp.check(epoch=epoch + 1, model=self.model, score=valid_loss, lr=model_optim.param_groups[0]['lr'])
             adjust_learning_rate(model_optim, epoch + 1, self.params)
-
-            if early_stopping.validate(valid_loss):
-                print("Early stopping")
-                break
-
+        
         best_model_path = os.path.join(self.savedir, f'{ckp.best_epoch}.pth')
         checkpoint = torch.load(best_model_path, weights_only=False)
-
+        
         if isinstance(self.model, nn.DataParallel):
             # self.model.module.load_state_dict(torch.load(best_model_path)['weight'])
             self.model.module.load_state_dict(checkpoint['weight'])

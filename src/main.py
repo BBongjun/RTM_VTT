@@ -89,15 +89,18 @@ def main(sweep_config=None):
     # training
     if args.train:
         logger.info('Training Start!')
-        history = model.train(trainloader, validloader, testloader)
+        history = model.train(trainloader, validloader, testloader, use_val=config['loader_params']['use_val'])
         for i in range(len(history['train_loss'])):
             train_loss = history['train_loss'][i]
-            valid_loss = history['validation_loss'][i]
-            # precisio n= history['precision'][i]
-            # recall = history['recall'][i]
-            # roc_auc = history['roc_auc'][i]
-            # f1 = history['f1'][i]
-            logger.info(f"Epoch: {i + 1} Train Loss: {train_loss:.7f} Vali Loss: {valid_loss:.7f} ")
+            if config['loader_params']['use_val']:
+                valid_loss = history['validation_loss'][i]
+                # precisio n= history['precision'][i]
+                # recall = history['recall'][i]
+                # roc_auc = history['roc_auc'][i]
+                # f1 = history['f1'][i]
+                logger.info(f"Epoch: {i + 1} Train Loss: {train_loss:.7f} Vali Loss: {valid_loss:.7f} ")
+            else:
+                logger.info(f"Epoch: {i + 1} Train Loss: {train_loss:.7f}")
                         # f"precision: {precision:.4f} recall: {recall:.4f} f1: {f1:.4f} ROC_AUC: {roc_auc:.4f}")
         logger.info('Model training success!!')
         
@@ -137,8 +140,8 @@ if __name__ == '__main__':
     parser.add_argument('--slide_size', type=int, default=1, help='overlap ratio for data loader')
 
     # train options
-    parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
-    parser.add_argument('--patience', type=int, default=5, help='early stopping patience')
+    parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+    parser.add_argument('--patience', type=int, default=15, help='early stopping patience')
 
     # loss
     parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'mae'],

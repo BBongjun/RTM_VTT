@@ -76,17 +76,19 @@ def get_dataloader(data_info, loader_params: dict):
         tuple: (train_loader, val_loader or None, test_loader)
     """
     # 전체 train 파일 리스트
-    all_train_files = sorted([
+    train_files = sorted([
         os.path.join(data_info['train_dir'], f)
         for f in os.listdir(data_info['train_dir'])
         if f.endswith(".h5")
     ])
 
     # validation 포함 여부
-    if loader_params.get('use_val', False):
-        split_idx = int(len(all_train_files) * 0.9)
-        train_files = all_train_files[:split_idx]
-        val_files = all_train_files[split_idx:]
+    if loader_params['use_val']:
+        val_files = sorted([
+        os.path.join(data_info['val_dir'], f)
+        for f in os.listdir(data_info['val_dir'])
+        if f.endswith(".h5")
+    ])
 
         val_dataset = WaferDataset(val_files)
         val_loader = DataLoader(val_dataset,
@@ -96,7 +98,6 @@ def get_dataloader(data_info, loader_params: dict):
                                 pin_memory=True,
                                 drop_last=False)
     else:
-        train_files = all_train_files
         val_loader = None
 
     # test 파일 리스트 (필요시 별도 dir로 교체 가능)
