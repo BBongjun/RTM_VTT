@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 import json
 import pdb
+from tqdm import tqdm
 
 warnings.filterwarnings('ignore')
 
@@ -222,7 +223,7 @@ class build_model():
         criterion = self._select_criterion()
 
         history = {'train_loss': [], 'validation_loss': []}
-
+        
         for epoch in range(self.args.epochs):
             iter_count = 0
             train_loss = []
@@ -231,44 +232,53 @@ class build_model():
             self.model.train()
             epoch_time = time.time()
             
-            for batch_idx, batch in enumerate(train_loader):
-                iter_count += 1
-                batch_x = batch['given'].float().to(self.device)
-                batch_y = batch['answer'].float().to(self.device)
+            with tqdm(total=len(train_loader), desc=f"Epoch {epoch+1}/{self.args.epochs}") as pbar:
+                for batch_idx, batch in enumerate(train_loader):
+                    iter_count += 1
 
-                model_optim.zero_grad()
-                if self.args.model in ['VTTSAT', 'VTTPAT']:
-                    output, _ = self.model(batch_x)
-                else:
-                    output = self.model(batch_x)
+                    batch_x = batch['given'].float().to(self.device)
+                    batch_y = batch['answer'].float().to(self.device)
+
+                    model_optim.zero_grad()
+                    if self.args.model in ['VTTSAT', 'VTTPAT']:
+                        output, _ = self.model(batch_x)
+                    else:
+                        output = self.model(batch_x)
+                        
+                    loss = criterion(output, batch_y)
+                    train_score.append(loss.cpu().detach().numpy().mean(axis=2))
+                    loss = torch.mean(loss)
+                    train_loss.append(loss.item())
+                    loss.backward()
+                    model_optim.step()
+
+                    speed = (time.time() - time_now) / iter_count
+                    left_time = speed * ((self.args.epochs - epoch) * train_steps - batch_idx)
                     
-                loss = criterion(output, batch_y)
-                train_score.append(loss.cpu().detach().numpy().mean(axis=2))
-                loss = torch.mean(loss)
-                train_loss.append(loss.item())
-                loss.backward()
-                model_optim.step()
-
-                speed = (time.time() - time_now) / iter_count
-                left_time = speed * ((self.args.epochs - epoch) * train_steps - batch_idx)
+                    pbar.update(1)
 
             train_score = np.concatenate(train_score).flatten()
             train_loss_avg = np.average(train_loss)
             valid_loss, valid_score = self.valid(valid_loader, criterion, epoch)
             valid_score = np.concatenate(valid_score).flatten()
             
-            dist, attack = self.inference(test_loader, epoch)
+            # 테스트셋(label이 있는) inference
+            # dist, attack = self.inference(test_loader, epoch)
 
             # result save
-            folder_path = os.path.join(self.savedir, 'results', f'epoch_{epoch}')
-            os.makedirs(folder_path, exist_ok=True)
-            visual = check_graph(dist, attack, piece=4)
-            visual.savefig(os.path.join(folder_path, f'graph.png'))
-            np.save(os.path.join(folder_path, f'dist.npy'), dist)
-            np.save(os.path.join(folder_path, f'attack.npy'), attack)
+            # folder_path = os.path.join(self.savedir, 'results', f'epoch_{epoch}')
+            # os.makedirs(folder_path, exist_ok=True)
+            # visual = check_graph(dist, attack, piece=4)
+            # visual.savefig(os.path.join(folder_path, f'graph.png'))
+            # np.save(os.path.join(folder_path, f'dist.npy'), dist)
+            # np.save(os.path.join(folder_path, f'attack.npy'), attack)
 
-            print(f"Epoch: {epoch + 1}, Steps: {train_steps} cost time: {time.time() - epoch_time} | "
-                  f"Train Loss: {train_loss_avg:.7f} Vali Loss: {valid_loss:.7f} ")
+            print('=' * 100)
+            print(f"[Epoch {epoch + 1}] "
+                f"Time: {time.time() - epoch_time:.2f}s | "
+                f"Steps: {train_steps} | "
+                f"Train Loss: {train_loss_avg:.6f} | "
+                f"Val Loss: {valid_loss:.6f}")
 
             history['train_loss'].append(train_loss_avg)
             history['validation_loss'].append(valid_loss)
@@ -281,11 +291,14 @@ class build_model():
                 break
 
         best_model_path = os.path.join(self.savedir, f'{ckp.best_epoch}.pth')
+        checkpoint = torch.load(best_model_path, weights_only=False)
 
         if isinstance(self.model, nn.DataParallel):
-            self.model.module.load_state_dict(torch.load(best_model_path)['weight'])
+            # self.model.module.load_state_dict(torch.load(best_model_path)['weight'])
+            self.model.module.load_state_dict(checkpoint['weight'])
         else:
-            self.model.load_state_dict(torch.load(best_model_path)['weight'])
+            # self.model.load_state_dict(torch.load(best_model_path)['weight'])
+            self.model.load_state_dict(checkpoint['weight'])
 
         return history
 
@@ -321,7 +334,8 @@ class build_model():
             else:
                 self.model.load_state_dict(weights)
 
-        dist, attack, pred = [], [], []
+        # dist, attack, pred = [], [], []
+        dist, pred = [], []
         history = dict()
         criterion = self._select_criterion()
 
@@ -330,7 +344,7 @@ class build_model():
             for batch_idx, batch in enumerate(test_loader):
                 batch_x = batch['given'].float().to(self.device)
                 batch_y = batch['answer'].float().to(self.device)
-                batch_attack = batch['attack'].reshape(-1, batch['attack'].shape[-1]).numpy()
+                # batch_attack = batch['attack'].reshape(-1, batch['attack'].shape[-1]).numpy()
 
                 if self.args.model in ['VTTSAT', 'VTTPAT']:
                     predictions, _ = self.model(batch_x)
@@ -340,49 +354,49 @@ class build_model():
                 score = criterion(predictions, batch_y).cpu().detach().numpy()
                 pred.append(predictions.cpu().detach().numpy())
                 dist.append(np.mean(score, axis=2))
-                attack.append(batch_attack)
+                # attack.append(batch_attack)
 
         dist = np.concatenate(dist).flatten()
-        attack = np.concatenate(attack).flatten()
+        # attack = np.concatenate(attack).flatten()
         pred = np.concatenate(pred)
 
-        # score
-        scores = dist.copy()
-        K = [0, 1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        f1_values = []
+        # # score
+        # scores = dist.copy()
+        # K = [0, 1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        # f1_values = []
 
-        print(f'Threshold start: {np.percentile(scores, 90):.4f} end: {np.percentile(scores, 99):.4f}')
+        # print(f'Threshold start: {np.percentile(scores, 90):.4f} end: {np.percentile(scores, 99):.4f}')
 
-        for k in K:
-            scores = dist.copy()
-            [f1, precision, recall, _, _, _, _, roc_auc, _, _], threshold = bf_search(scores, attack,
-                                                                                start=np.percentile(scores, 50),
-                                                                                end=np.percentile(scores, 99),
-                                                                                step_num=1000,
-                                                                                K=k,
-                                                                                verbose=False)
+        # for k in K:
+        #     scores = dist.copy()
+        #     [f1, precision, recall, _, _, _, _, roc_auc, _, _], threshold = bf_search(scores, attack,
+        #                                                                         start=np.percentile(scores, 50),
+        #                                                                         end=np.percentile(scores, 99),
+        #                                                                         step_num=1000,
+        #                                                                         K=k,
+        #                                                                         verbose=False)
 
-            f1_values.append(f1)
-            print(f"K: {k} precision: {precision:.4f} recall: {recall:.4f} f1: {f1:.4f} AUROC: {roc_auc:.4f}")
-            history.setdefault(f'precision_{k}', []).append(precision)
-            history.setdefault(f'recall_{k}', []).append(recall)
-            history.setdefault(f'f1_{k}', []).append(f1)
-            history.setdefault(f'roc_auc', []).append(roc_auc)
+        #     f1_values.append(f1)
+        #     print(f"K: {k} precision: {precision:.4f} recall: {recall:.4f} f1: {f1:.4f} AUROC: {roc_auc:.4f}")
+        #     history.setdefault(f'precision_{k}', []).append(precision)
+        #     history.setdefault(f'recall_{k}', []).append(recall)
+        #     history.setdefault(f'f1_{k}', []).append(f1)
+        #     history.setdefault(f'roc_auc', []).append(roc_auc)
 
-        auc = sum(0.5 * (f1_values[i] + f1_values[i + 1]) * (K[i + 1] - K[i]) for i in range(len(K) - 1)) / 100
-        print(f'PA%K AUC: {auc}')
+        # auc = sum(0.5 * (f1_values[i] + f1_values[i + 1]) * (K[i + 1] - K[i]) for i in range(len(K) - 1)) / 100
+        # print(f'PA%K AUC: {auc}')
 
-        visual = check_graph(dist, attack, piece=4, threshold=threshold)
-        figure_path = os.path.join(self.savedir, 'fig')
-        os.makedirs(figure_path, exist_ok=True)
-        visual.savefig(os.path.join(figure_path, f'whole.png'))
+        # visual = check_graph(dist, attack, piece=4, threshold=threshold)
+        # figure_path = os.path.join(self.savedir, 'fig')
+        # os.makedirs(figure_path, exist_ok=True)
+        # visual.savefig(os.path.join(figure_path, f'whole.png'))
 
         # result save
         folder_path = os.path.join(self.savedir, 'results')
         os.makedirs(folder_path, exist_ok=True)
 
         np.save(os.path.join(folder_path, f'dist.npy'), dist)
-        np.save(os.path.join(folder_path, f'attack.npy'), attack)
+        # np.save(os.path.join(folder_path, f'attack.npy'), attack)
         np.save(os.path.join(folder_path, f'pred.npy'), pred)
 
         return history

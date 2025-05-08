@@ -82,11 +82,6 @@ def main(sweep_config=None):
     trainloader, validloader, testloader = get_dataloader(data_info = data_info,
                                                           loader_params = config['loader_params'])        
 
-
-    # data shape
-    b, model_params['window_size'], model_params['feature_num'] = next(iter(trainloader))['given'].shape
-    logger.info(f'Data shape is ({b}, {model_params.window_size}, {model_params.feature_num})')
-
     # model build
     model = build_model(args, model_params, savedir)
     logger.info('Model build success!!')
@@ -98,13 +93,14 @@ def main(sweep_config=None):
         for i in range(len(history['train_loss'])):
             train_loss = history['train_loss'][i]
             valid_loss = history['validation_loss'][i]
-            # precision = history['precision'][i]
+            # precisio n= history['precision'][i]
             # recall = history['recall'][i]
             # roc_auc = history['roc_auc'][i]
             # f1 = history['f1'][i]
             logger.info(f"Epoch: {i + 1} Train Loss: {train_loss:.7f} Vali Loss: {valid_loss:.7f} ")
                         # f"precision: {precision:.4f} recall: {recall:.4f} f1: {f1:.4f} ROC_AUC: {roc_auc:.4f}")
         logger.info('Model training success!!')
+        
 
     # test
     if args.test:

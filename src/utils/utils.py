@@ -64,7 +64,8 @@ def load_model(resume: int, logdir: str):
     modelpath = os.path.join(savedir, modelname)
     print('modelpath: ', modelpath)
 
-    loadfile = torch.load(modelpath)
+    # loadfile = torch.load(modelpath)
+    loadfile = torch.load(modelpath, weigths_only=False)
     weights = loadfile['weight']
     start_epoch = loadfile['best_epoch']
     last_lr = loadfile['best_lr']
@@ -273,7 +274,7 @@ class CheckPoint:
             current learning rate of generator
         """
 
-        print('Save complete, epoch: {0:}: Best loss has changed from {1:.5f} to {2:.5f}'.format(epoch, self.best_score,
+        print('Save complete, epoch: {0:}: Best loss has changed from {1:.6f} to {2:.6f}'.format(epoch, self.best_score,
                                                                                                  score))
 
         state = {

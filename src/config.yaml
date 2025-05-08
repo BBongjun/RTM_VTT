@@ -50,7 +50,8 @@ VTTSAT:
   optim: adamw
   lr: 0.0001
   lradj: type1
-  window_size: 100
+  window_size: 30
+  feature_num: 12
 
 VTTPAT:
   hidden_size: 128
