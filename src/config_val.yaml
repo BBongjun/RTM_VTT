@@ -13,7 +13,7 @@ GDN_step45_100_ref_val:
   train_dir: ../../data/GDN_step45_100_ref_val/train
   val_dir: ../../data/GDN_step45_100_ref_val/val
   test_dir: ../../data/GDN_step45_100_ref_val/test
-  
+
 GDN_step45_big_ref:
   train_dir: ../../data/GDN_step45_big_ref/train
   test_dir: ../../data/GDN_step45_big_ref/test
@@ -44,7 +44,7 @@ SMD:
 #   train_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Normal_v1.pkl
 #   test_path: ../data/SWaT/SWaT.A1 _ A2_Dec 2015/Physical/SWaT_Dataset_Attack_v0.pkl
 
-# scale: standard
+scale: standard
 
 # dataloader parameters
 loader_params:

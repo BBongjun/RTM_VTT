@@ -140,8 +140,8 @@ if __name__ == '__main__':
     parser.add_argument('--slide_size', type=int, default=1, help='overlap ratio for data loader')
 
     # train options
-    parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-    parser.add_argument('--patience', type=int, default=15, help='early stopping patience')
+    parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
+    parser.add_argument('--patience', type=int, default=10, help='early stopping patience')
 
     # loss
     parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'mae'],
